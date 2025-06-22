@@ -1,0 +1,1 @@
+Checking if I am able to make verified commits in this repository
