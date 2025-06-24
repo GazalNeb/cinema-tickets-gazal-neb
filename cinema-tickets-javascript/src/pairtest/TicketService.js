@@ -2,11 +2,12 @@ import TicketTypeRequest from './lib/TicketTypeRequest.js';
 import InvalidPurchaseException from './lib/InvalidPurchaseException.js';
 
 export default class TicketService {
-  /**
-   * Should only have private methods other than the one below.
-   */
+  #prices = { ADULT: 25, CHILD: 15, INFANT: 0 };
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
-    // throws InvalidPurchaseException
+    const totalCost = ticketTypeRequests.reduce((total, req) => {
+      return total + (this.#prices[req.getTicketType()] * req.getNoOfTickets());
+    }, 0);
+    return totalCost;
   }
 }
