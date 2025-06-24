@@ -1,10 +1,10 @@
-import TicketTypeRequest from "./lib/TicketTypeRequest.js";
 import InvalidPurchaseException from "./lib/InvalidPurchaseException.js";
 
 export default class TicketService {
-  #prices = { ADULT: 25, CHILD: 15, INFANT: 0 };
   #paymentService;
   #seatReservationService;
+  #ticketPrices = { ADULT: 25, CHILD: 15, INFANT: 0 };
+  #MAX_TICKETS = 25;
 
   constructor(paymentService, seatReservationService) {
     this.#paymentService = paymentService;
@@ -12,40 +12,65 @@ export default class TicketService {
   }
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
-    const ticketCounts = { ADULT: 0, CHILD: 0, INFANT: 0 };
+    this.#validateAccountId(accountId);
+    const ticketCounts = this.#countTickets(ticketTypeRequests);
+    this.#validateTickets(ticketCounts);
 
-    ticketTypeRequests.forEach((req) => {
-      ticketCounts[req.getTicketType()] += req.getNoOfTickets();
-    });
-
-    if (
-      (ticketCounts.INFANT > 0 || ticketCounts.CHILD > 0) &&
-      ticketCounts.ADULT === 0
-    ) {
-      throw new InvalidPurchaseException(
-        "Child and Infant tickets require Adult tickets."
-      );
-    }
-
-    const totalTickets = ticketTypeRequests.reduce(
-      (sum, req) => sum + req.getNoOfTickets(),
-      0
-    );
-    if (totalTickets > 25) {
-      throw new InvalidPurchaseException(
-        "Cannot purchase more than 25 tickets."
-      );
-    }
-
-    const totalCost = ticketTypeRequests.reduce((total, req) => {
-      return total + this.#prices[req.getTicketType()] * req.getNoOfTickets();
-    }, 0);
-
+    const totalCost = this.#calculateTotalCost(ticketCounts);
     const seatsToReserve = ticketCounts.ADULT + ticketCounts.CHILD;
 
     this.#paymentService.makePayment(accountId, totalCost);
     this.#seatReservationService.reserveSeat(accountId, seatsToReserve);
 
     return totalCost;
+  }
+
+  #validateAccountId(accountId) {
+    if (!Number.isInteger(accountId) || accountId <= 0) {
+      throw new InvalidPurchaseException("Invalid account ID.");
+    }
+  }
+
+  #countTickets(ticketTypeRequests) {
+    const counts = { ADULT: 0, CHILD: 0, INFANT: 0 };
+
+    ticketTypeRequests.forEach((req) => {
+      const type = req.getTicketType();
+      counts[type] += req.getNoOfTickets();
+    });
+
+    return counts;
+  }
+
+  #validateTickets({ ADULT, CHILD, INFANT }) {
+    const totalTickets = ADULT + CHILD + INFANT;
+
+    if (totalTickets === 0) {
+      throw new InvalidPurchaseException("Must purchase at least one ticket.");
+    }
+
+    if (totalTickets > this.#MAX_TICKETS) {
+      throw new InvalidPurchaseException(
+        `Cannot purchase more than ${this.#MAX_TICKETS} tickets.`
+      );
+    }
+
+    if ((CHILD > 0 || INFANT > 0) && ADULT === 0) {
+      throw new InvalidPurchaseException(
+        "Child and Infant tickets require at least one Adult ticket."
+      );
+    }
+
+    if (INFANT > ADULT) {
+      throw new InvalidPurchaseException(
+        "Each Infant must be accompanied by an Adult."
+      );
+    }
+  }
+
+  #calculateTotalCost(ticketCounts) {
+    return Object.entries(ticketCounts).reduce((total, [type, quantity]) => {
+      return total + this.#ticketPrices[type] * quantity;
+    }, 0);
   }
 }
