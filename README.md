@@ -1,1 +1,1 @@
-Checking if I am able to make verified commits in this repository
+This is my JavaScript solution for the Cinema Tickets assignment. The repository also contains original starter code for Java and Python, which I left unchanged.
