@@ -1,22 +1,37 @@
-import TicketTypeRequest from './lib/TicketTypeRequest.js';
-import InvalidPurchaseException from './lib/InvalidPurchaseException.js';
+import TicketTypeRequest from "./lib/TicketTypeRequest.js";
+import InvalidPurchaseException from "./lib/InvalidPurchaseException.js";
 
 export default class TicketService {
   #prices = { ADULT: 25, CHILD: 15, INFANT: 0 };
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
-   const ticketCounts = { ADULT: 0, CHILD: 0, INFANT: 0 };
+    const ticketCounts = { ADULT: 0, CHILD: 0, INFANT: 0 };
 
-    ticketTypeRequests.forEach(req => {
+    ticketTypeRequests.forEach((req) => {
       ticketCounts[req.getTicketType()] += req.getNoOfTickets();
     });
 
-    if ((ticketCounts.INFANT > 0 || ticketCounts.CHILD > 0) && ticketCounts.ADULT === 0) {
-      throw new InvalidPurchaseException('Child and Infant tickets require Adult tickets.');
+    if (
+      (ticketCounts.INFANT > 0 || ticketCounts.CHILD > 0) &&
+      ticketCounts.ADULT === 0
+    ) {
+      throw new InvalidPurchaseException(
+        "Child and Infant tickets require Adult tickets."
+      );
     }
-    
+
+    const totalTickets = ticketTypeRequests.reduce(
+      (sum, req) => sum + req.getNoOfTickets(),
+      0
+    );
+    if (totalTickets > 25) {
+      throw new InvalidPurchaseException(
+        "Cannot purchase more than 25 tickets."
+      );
+    }
+
     const totalCost = ticketTypeRequests.reduce((total, req) => {
-      return total + (this.#prices[req.getTicketType()] * req.getNoOfTickets());
+      return total + this.#prices[req.getTicketType()] * req.getNoOfTickets();
     }, 0);
     return totalCost;
   }

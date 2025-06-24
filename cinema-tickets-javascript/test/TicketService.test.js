@@ -30,4 +30,13 @@ describe("TicketService", () => {
       )
     );
   });
+
+  test("should throw InvalidPurchaseException if more than 25 tickets are purchased", () => {
+    const ticketService = new TicketService();
+    const requests = [new TicketTypeRequest("ADULT", 26)];
+
+    expect(() => ticketService.purchaseTickets(1, ...requests)).toThrow(
+      new InvalidPurchaseException("Cannot purchase more than 25 tickets.")
+    );
+  });
 });
